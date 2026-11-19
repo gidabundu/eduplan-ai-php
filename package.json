@@ -1,0 +1,18 @@
+{
+  "name": "eduplan-ai-php",
+  "version": "1.0.0",
+  "description": "A classic server-rendered PHP + MySQL \"admin\" system — same Genora AI-style dark/pink interface, running on a standard PHP + MySQL host (Apache, Nginx, XAMPP, or just `php -S`). Every page is real: real database, real file uploads, real AI calls, and every button on screen does something.",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/tailwind.css -o ./assets/tailwind-built.css --minify",
+    "build": "npm.cmd run build:css"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "lucide": "^0.460.0",
+    "tailwindcss": "^3.4.19"
+  }
+}

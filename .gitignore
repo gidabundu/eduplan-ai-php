@@ -1,0 +1,11 @@
+.env
+.env.*
+node_modules/
+/vendor/
+uploads/*
+!uploads/.gitkeep
+__smoke_response.json
+*.log
+*.cache
+.DS_Store
+Thumbs.db
