@@ -16,6 +16,7 @@ $assetItems = [
     ['id' => 'users', 'label' => 'User Directory', 'href' => 'users.php', 'icon' => 'users'],
 ];
 $toolItems = [
+    ['id' => 'teaching-sessions', 'label' => 'Teaching Sessions', 'href' => 'teaching_sessions.php', 'icon' => 'clipboard-check'],
     ['id' => 'reports', 'label' => 'Reports', 'href' => 'reports.php', 'icon' => 'bar-chart-3'],
     ['id' => 'settings', 'label' => ui_text('settings'), 'href' => 'settings.php', 'icon' => 'settings'],
 ];

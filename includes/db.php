@@ -92,6 +92,29 @@ function ensure_schema(PDO $pdo): void
     $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS term VARCHAR(190) DEFAULT NULL');
     $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS academic_year VARCHAR(50) DEFAULT NULL');
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS teaching_sessions (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        auth_user_id INT NOT NULL,
+        teacher_name VARCHAR(190) NOT NULL,
+        class_name VARCHAR(190) NOT NULL,
+        subject VARCHAR(190) NOT NULL,
+        topic VARCHAR(255) NOT NULL,
+        lesson_date DATE NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        outcome VARCHAR(30) NOT NULL,
+        teacher_notes TEXT DEFAULT NULL,
+        review_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+        admin_note TEXT DEFAULT NULL,
+        reviewed_by INT DEFAULT NULL,
+        reviewed_at DATETIME DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_teaching_session_date (lesson_date),
+        INDEX idx_teaching_session_teacher_date (auth_user_id, lesson_date),
+        INDEX idx_teaching_session_review (review_status, lesson_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     // A "resource" is either a syllabus or a book/reference text. Both are
     // uploaded the same way by a user, and both can be used by the AI
     // Generator as grounding material — nothing in this table is seeded,

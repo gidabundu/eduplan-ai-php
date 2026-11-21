@@ -124,6 +124,7 @@ function require_login(): void
                     'generate.php' => 'AI Generator',
                     'save_generated.php' => 'Saved generations',
                     'save_forecast.php' => 'Forecast tracker',
+                    'teaching_sessions.php' => 'Teaching Sessions',
                 ];
                 $label = $labels[$page] ?? 'EduPlan';
                 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');

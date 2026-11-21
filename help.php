@@ -10,6 +10,7 @@ $faqs = [
     ['q' => 'Can teachers sign in?', 'a' => 'Yes. Teachers sign in on the same login page using their User Directory email address and the temporary password provided by an administrator. They must change that password the first time they sign in.'],
     ['q' => 'What can teachers do after signing in?', 'a' => 'Teachers can use the AI Generator, view and manage resources and saved generations, view and manage the User Directory, and edit their own profile. School-wide settings and AI credentials remain managed by the administrator/server configuration.'],
     ['q' => 'How do I track a forecast?', 'a' => 'Generate a Forecast and click “Save to Progress Tracker”. Teachers can update their own weeks to Planned, In progress, or Taught in Reports. Administrators can review every teacher’s class progress and the time of each status update. The coverage summary counts weeks marked Taught. The regular Save button still saves the forecast as a saved generation.'],
+    ['q' => 'How do I record a class I taught?', 'a' => 'Open Teaching Sessions and submit the class, subject, topic, date, start and end times, and lesson outcome. Your administrator can confirm the record or request changes. You can edit pending or returned records.'],
     ['q' => 'How do I reset my password?', 'a' => 'Choose “Forgot your password?” on the sign-in page and submit your account email. If it matches an account, EduPlan queues a reset email with a single-use link that expires after one hour. Email delivery must be configured; otherwise contact your administrator.'],
 ];
 
@@ -20,6 +21,7 @@ $tips = [
     'Resources only show in the "Reference material" picker once their text has been extracted — check the Status column in the Resource Library.',
     'If a teacher cannot sign in, make sure an administrator has created a login for that teacher in the User Directory and that the teacher is using the correct email address.',
     'Save a generated Forecast to the Progress Tracker. Update your own weekly status in Reports; administrators can review all teachers’ progress and status-update times.',
+    'Use Teaching Sessions to record a class you taught. Submit complete class and time details so your administrator can review the record.',
     'Password reset emails use the mail queue; the configured mail worker must run to deliver queued messages.',
 ];
 

@@ -38,6 +38,9 @@ real database, real file uploads, real AI calls, and every button on screen does
 - **Forecast progress tracking.** Save a generated forecast to the Progress Tracker to record its
   weeks, then update each week as Planned, In progress, or Taught in Reports. The normal Save action
   still stores the full forecast under Saved AI generations.
+- **Teaching session log.** Teachers can record class, subject, topic, date, time, lesson outcome, and
+  optional notes. Administrators can confirm each session or request changes; teachers can edit
+  pending or returned entries. Records are separate from AI generation activity.
 - **Every control is wired up** — see the full list below. Nothing on screen is a dead click.
 
 ## Every button, and what it actually does
@@ -63,6 +66,7 @@ real database, real file uploads, real AI calls, and every button on screen does
 | Filter, Remove | Resource Library | Real filtered query / real delete |
 | + Add user, Search, Edit, Remove | User Directory | Admins add directory users and create/reset teacher logins; users with directory access can search, edit, and remove records |
 | Teacher Activity | Admin tools | Review daily sign-ins, generation metadata, and teaching-status updates, filtered by day and teacher |
+| Teaching Sessions | Tools | Teachers submit and update their class-session records; administrators confirm sessions or request changes |
 | Save changes | Settings | Real update to the database |
 
 ## Requirements
@@ -191,6 +195,7 @@ reset_password.php      One-time, expiring password reset form
 generator.php            AI Generator — 5 tabs, forms only (AJAX does the work)
 reports.php              Real counts, saved AI generations, and forecast progress tracking
 teacher_activity.php     Admin activity log with generation and teaching metadata
+teaching_sessions.php    Teacher-submitted class records with admin review
 settings.php             Personal profile; school preferences are admin-only
 help.php                 FAQ + tips (destination for the top-bar Help/Tips links)
 api/generate.php         POST endpoint: builds the prompt, optionally adds
