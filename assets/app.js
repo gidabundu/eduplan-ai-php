@@ -48,6 +48,14 @@ window.EduPlan = (function () {
     document.getElementById('editUserModal').classList.remove('hidden');
   }
 
+  function openLoginModal(id, name, isReset) {
+    document.getElementById('teacher-login-user-id').value = id;
+    document.querySelector('#teacherLoginModal input[name="temporary_password"]').value = '';
+    document.getElementById('teacher-login-title').textContent = isReset ? 'Reset teacher login' : 'Create teacher login';
+    document.getElementById('teacher-login-description').textContent = (isReset ? 'Set a new temporary password for ' : 'Create a login for ') + name + '.';
+    document.getElementById('teacherLoginModal').classList.remove('hidden');
+  }
+
   function toggleTheme() {
     var html = document.documentElement;
     var isLight = html.getAttribute('data-theme') === 'light';
@@ -137,6 +145,7 @@ window.EduPlan = (function () {
       '<button onclick="EduPlan.toggleEdit(\'' + contentId + '\', this)" class="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800"><i data-lucide="edit-3" class="h-3.5 w-3.5"></i> Edit</button>' +
       '<button onclick="' + regenerateFn + '" class="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800"><i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> Regenerate</button>' +
       '<button onclick="EduPlan.downloadPdf(\'' + contentId + '\', this)" class="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Save PDF</button>' +
+      (contentId === 'fc-content' ? '<button onclick="EduPlan.saveForecastProgress(\'' + contentId + '\', this)" class="flex items-center gap-1.5 rounded-full border border-orange-600 px-3 py-1.5 text-xs font-medium text-orange-300 hover:bg-orange-950"><i data-lucide="clipboard-check" class="h-3.5 w-3.5"></i> Save to Progress Tracker</button>' : '') +
       '<button onclick="EduPlan.saveResult(\'' + contentId + '\', this)" class="ml-auto flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-black hover:bg-zinc-200"><i data-lucide="save" class="h-3.5 w-3.5"></i> Save</button>' +
       '</div>';
   }
@@ -236,6 +245,50 @@ window.EduPlan = (function () {
       btn.disabled = false;
       if (window.lucide) lucide.createIcons();
     }, 2500);
+  }
+
+  async function saveForecastProgress(contentId, btn) {
+    var el = document.getElementById(contentId);
+    if (!el) return;
+    var weeks;
+    try {
+      weeks = JSON.parse(el.dataset.weeks || '[]');
+    } catch (e) {
+      btn.title = 'Forecast data could not be read.';
+      return;
+    }
+
+    var original = btn.innerHTML;
+    btn.innerHTML = 'Saving...';
+    btn.disabled = true;
+    try {
+      const res = await fetch('api/save_forecast.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({
+          year: el.dataset.year || '',
+          term: el.dataset.term || '',
+          class_name: el.dataset.className || '',
+          subject: el.dataset.subject || '',
+          weeks: weeks,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Could not save forecast progress.');
+      btn.innerHTML = '<i data-lucide="check" class="h-3.5 w-3.5"></i> Saved to tracker';
+    } catch (e) {
+      btn.innerHTML = 'Save failed';
+      btn.title = e.message;
+    }
+    if (window.lucide) lucide.createIcons();
+    setTimeout(function () {
+      btn.innerHTML = original;
+      btn.disabled = false;
+      if (window.lucide) lucide.createIcons();
+    }, 3500);
   }
 
   function badge(text) {
@@ -375,7 +428,7 @@ window.EduPlan = (function () {
     try {
       const r = await callApi('forecast', form, parseInt(val('fc-resource') || '0', 10), checked('fc-websearch'));
       const meta = form.subject + ' • ' + form.className + ' • ' + form.term;
-      let html = '<div id="fc-content" data-type="forecast" data-title="' + escapeHtml(form.subject) + ' term forecast" data-meta="' + escapeHtml(meta) + '">';
+      let html = '<div id="fc-content" data-type="forecast" data-title="' + escapeHtml(form.subject) + ' term forecast" data-meta="' + escapeHtml(meta) + '" data-year="' + escapeHtml(form.year) + '" data-term="' + escapeHtml(form.term) + '" data-class-name="' + escapeHtml(form.className) + '" data-subject="' + escapeHtml(form.subject) + '" data-weeks="' + escapeHtml(JSON.stringify(r.weeks || [])) + '">';
       html += '<div class="mb-4 rounded-lg border border-orange-900 bg-orange-950 p-4">' +
         '<div class="flex items-center gap-1.5 text-xs font-semibold text-orange-300"><i data-lucide="sparkles" class="h-3.5 w-3.5"></i> AI context insights</div>' +
         '<p class="mt-1.5 text-xs leading-relaxed text-orange-200">' + escapeHtml(r.insight || '') + '</p></div>';
@@ -447,12 +500,14 @@ window.EduPlan = (function () {
     openReportEdit: openReportEdit,
     openResourceEdit: openResourceEdit,
     openUserEdit: openUserEdit,
+    openLoginModal: openLoginModal,
     toggleTheme: toggleTheme,
     toggleSidebar: toggleSidebar,
     toggleWorkspaceMenu: toggleWorkspaceMenu,
     toggleEdit: toggleEdit,
     downloadPdf: downloadPdf,
     saveResult: saveResult,
+    saveForecastProgress: saveForecastProgress,
     step: step,
     updateDifficultyLabel: updateDifficultyLabel,
     submitLessonPlan: submitLessonPlan,

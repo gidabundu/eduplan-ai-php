@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
-require_login();
+require_permission('manage_saved');
 csrf_required();
 header('Content-Type: application/json');
 

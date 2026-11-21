@@ -2,11 +2,15 @@
 require_once __DIR__ . '/includes/db.php';
 
 $faqs = [
-    ['q' => 'How do I get the AI Generator working?', 'a' => 'Set GOOGLE_API_KEY from Google AI Studio. Gemini is the primary provider and works without any other provider keys. If both Gemini and Anthropic keys are configured, Gemini is preferred. Set AI_PROVIDER=anthropic only if you want to use Anthropic instead.'],
+    ['q' => 'How do I get the AI Generator working?', 'a' => 'Set GOOGLE_API_KEY from Google AI Studio. Gemini is the primary provider and works without any other provider keys. If both Gemini and Anthropic keys are configured, Gemini is preferred. Set AI_PROVIDER=anthropic only if you want to use Anthropic instead. AI keys are managed by the server administrator in config.php, environment variables, or the Git-ignored config.local.php file.'],
     ['q' => 'How does the AI use my uploaded books and syllabi?', 'a' => 'Upload a file (or paste text) in the Resource Library. Its text is extracted automatically and stored. In any Generator tool, pick it from the "Reference material" dropdown and that text is sent to the AI as grounding material.'],
-    ['q' => 'Why didn\'t a PDF extract any text?', 'a' => 'Extraction is dependency-free and works best on simple, text-based PDFs. Scanned or image-only PDFs can\'t be read this way — paste the text directly instead for a reliable result.'],
-    ['q' => 'What does "Search the web" do?', 'a' => 'It turns on Anthropic\'s server-side web search tool for that one request, so the AI can pull in current information beyond what\'s in your Resource Library.'],
-    ['q' => 'Is there a login system?', 'a' => 'No — this build has no authentication. Every page is open. The Login/Start for Free/Create account/Sign in controls route to Settings, the Generator, and User Directory respectively.'],
+    ['q' => 'Why didn\'t a PDF extract any text?', 'a' => 'Extraction works best on simple, text-based PDFs. When Poppler or Tesseract are installed, EduPlan can also extract text from more PDFs and scanned pages. If a PDF still cannot be read, paste the text directly instead for a reliable result.'],
+    ['q' => 'What does "Search the web" do?', 'a' => 'It turns on web search for that one request when the selected AI provider supports it, so the AI can pull in current information beyond what\'s in your Resource Library.'],
+    ['q' => 'Is there a login system?', 'a' => 'Yes. EduPlan AI requires you to sign in. On first run, the login page creates the initial administrator account. Administrators can create or reset teacher logins from the User Directory by assigning a temporary password to a teacher account.'],
+    ['q' => 'Can teachers sign in?', 'a' => 'Yes. Teachers sign in on the same login page using their User Directory email address and the temporary password provided by an administrator. They must change that password the first time they sign in.'],
+    ['q' => 'What can teachers do after signing in?', 'a' => 'Teachers can use the AI Generator, view and manage resources and saved generations, view and manage the User Directory, and edit their own profile. School-wide settings and AI credentials remain managed by the administrator/server configuration.'],
+    ['q' => 'How do I track a forecast?', 'a' => 'Generate a Forecast and click “Save to Progress Tracker”. Teachers can update their own weeks to Planned, In progress, or Taught in Reports. Administrators can review every teacher’s class progress and the time of each status update. The coverage summary counts weeks marked Taught. The regular Save button still saves the forecast as a saved generation.'],
+    ['q' => 'How do I reset my password?', 'a' => 'Choose “Forgot your password?” on the sign-in page and submit your account email. If it matches an account, EduPlan queues a reset email with a single-use link that expires after one hour. Email delivery must be configured; otherwise contact your administrator.'],
 ];
 
 $tips = [
@@ -14,6 +18,9 @@ $tips = [
     'Click the hamburger icon top-left to collapse the sidebar on a smaller screen.',
     'The Appearance toggle (sun icon) switches the whole interface between dark and light.',
     'Resources only show in the "Reference material" picker once their text has been extracted — check the Status column in the Resource Library.',
+    'If a teacher cannot sign in, make sure an administrator has created a login for that teacher in the User Directory and that the teacher is using the correct email address.',
+    'Save a generated Forecast to the Progress Tracker. Update your own weekly status in Reports; administrators can review all teachers’ progress and status-update times.',
+    'Password reset emails use the mail queue; the configured mail worker must run to deliver queued messages.',
 ];
 
 $activePage = 'help';

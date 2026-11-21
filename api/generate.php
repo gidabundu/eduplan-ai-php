@@ -47,7 +47,7 @@ register_shutdown_function(static function (): void {
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
-require_login();
+require_permission('generate');
 csrf_required();
 
 ini_set('display_errors', '0');
@@ -62,6 +62,42 @@ function fail(string $msg, int $code = 400): void
 function s($v, $default = '')
 {
     return is_string($v) && trim($v) !== '' ? trim($v) : $default;
+}
+
+function record_generation_activity(string $type, array $form, ?array $result = null): void
+{
+    $topic = s($form['topic'] ?? null, '');
+    if ($type === 'lesson-note') {
+        $subtopic = s($form['subtopic'] ?? null, '');
+        if ($subtopic !== '') {
+            $topic = $topic !== '' ? $topic . ' / ' . $subtopic : $subtopic;
+        }
+    } elseif ($type === 'forecast' && is_array($result['weeks'] ?? null)) {
+        $topics = [];
+        foreach ($result['weeks'] as $week) {
+            if (is_array($week) && is_string($week['topic'] ?? null) && trim($week['topic']) !== '') {
+                $topics[] = trim($week['topic']);
+            }
+        }
+        if ($topics) {
+            $topic = implode('; ', $topics);
+        }
+    }
+
+    $user = current_user();
+    if ($user) {
+        record_teacher_activity(
+            get_db(),
+            $user,
+            'generation',
+            'Generated ' . ucwords(str_replace('-', ' ', $type)),
+            s($form['className'] ?? $form['classLevel'] ?? null, ''),
+            s($form['subject'] ?? null, ''),
+            $topic,
+            s($form['term'] ?? null, ''),
+            s($form['year'] ?? null, '')
+        );
+    }
 }
 
 $raw = file_get_contents('php://input');
@@ -220,7 +256,7 @@ if ($provider === '') {
 
 if ($provider === 'google') {
     if ($googleKey === '' || str_contains($googleKey, 'REPLACE-ME')) {
-        fail('No Google API key configured yet. Set the GOOGLE_API_KEY environment variable.', 500);
+        fail('No Google API key configured yet. Add it to the ignored config.local.php file or set GOOGLE_API_KEY in Apache’s environment.', 500);
     }
 
     $model = defined('GOOGLE_MODEL') ? GOOGLE_MODEL : (getenv('GOOGLE_MODEL') ?: 'gemini-3.8-flash');
@@ -303,7 +339,7 @@ if ($provider === 'google') {
     }
 } else {
     if ($anthropicKey === '' || str_contains($anthropicKey, 'REPLACE-ME')) {
-        fail('No Anthropic API key configured yet. Add yours in config.php or set the ANTHROPIC_API_KEY environment variable.', 500);
+        fail('No Anthropic API key configured yet. Add it to the ignored config.local.php file or set ANTHROPIC_API_KEY in Apache’s environment.', 500);
     }
 
     if (!str_starts_with($anthropicKey, 'sk-ant-')) {
@@ -358,6 +394,7 @@ if ($provider === 'google') {
 }
 
 if (!$expectJson) {
+    record_generation_activity($type, $form);
     echo json_encode(['result' => ['text' => trim($text)]]);
     exit;
 }
@@ -373,5 +410,7 @@ $result = json_decode($jsonSlice, true);
 if ($result === null) {
     fail('Could not parse the model response as JSON.', 502);
 }
+
+record_generation_activity($type, $form, $result);
 
 echo json_encode(['result' => $result]);

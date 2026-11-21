@@ -48,8 +48,16 @@ function ensure_schema(PDO $pdo): void
         email VARCHAR(190) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'Admin',
+        directory_user_id INT DEFAULT NULL,
+        must_change_password TINYINT(1) NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec("ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS directory_user_id INT DEFAULT NULL");
+    $pdo->exec("ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS must_change_password TINYINT(1) NOT NULL DEFAULT 0");
+    $directoryIndex = $pdo->query("SHOW INDEX FROM auth_users WHERE Key_name = 'uq_auth_directory_user'")->fetch();
+    if (!$directoryIndex) {
+        $pdo->exec('ALTER TABLE auth_users ADD UNIQUE INDEX uq_auth_directory_user (directory_user_id)');
+    }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +68,29 @@ function ensure_schema(PDO $pdo): void
         classes INT DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS teacher_activities (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        auth_user_id INT NOT NULL,
+        directory_user_id INT DEFAULT NULL,
+        teacher_name VARCHAR(190) NOT NULL,
+        teacher_email VARCHAR(190) NOT NULL,
+        event_type VARCHAR(30) NOT NULL,
+        activity VARCHAR(190) NOT NULL,
+        class_name VARCHAR(190) DEFAULT NULL,
+        subject VARCHAR(190) DEFAULT NULL,
+        topic VARCHAR(255) DEFAULT NULL,
+        term VARCHAR(190) DEFAULT NULL,
+        academic_year VARCHAR(50) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_teacher_activity_date (created_at),
+        INDEX idx_teacher_activity_user_date (auth_user_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS class_name VARCHAR(190) DEFAULT NULL');
+    $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS subject VARCHAR(190) DEFAULT NULL');
+    $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS topic VARCHAR(255) DEFAULT NULL');
+    $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS term VARCHAR(190) DEFAULT NULL');
+    $pdo->exec('ALTER TABLE teacher_activities ADD COLUMN IF NOT EXISTS academic_year VARCHAR(50) DEFAULT NULL');
 
     // A "resource" is either a syllabus or a book/reference text. Both are
     // uploaded the same way by a user, and both can be used by the AI
@@ -115,6 +146,49 @@ function ensure_schema(PDO $pdo): void
         error_message VARCHAR(255) DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_mail_pending (delivered_at, attempts)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash CHAR(64) NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_password_reset_user (user_id, expires_at),
+        INDEX idx_password_reset_expiry (expires_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ip_hash CHAR(64) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_password_reset_ip_time (ip_hash, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS forecast_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        academic_year VARCHAR(50) NOT NULL,
+        term VARCHAR(190) NOT NULL,
+        class_name VARCHAR(190) NOT NULL,
+        subject VARCHAR(190) NOT NULL,
+        created_by INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_forecast_plan_period (academic_year, term, class_name, subject)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS forecast_plan_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        plan_id INT NOT NULL,
+        week_number INT NOT NULL,
+        lesson_date VARCHAR(50) DEFAULT NULL,
+        topic VARCHAR(255) NOT NULL,
+        subtopic VARCHAR(255) DEFAULT NULL,
+        objective TEXT DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'planned',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_forecast_item_plan (plan_id),
+        INDEX idx_forecast_item_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     // Exactly one settings row, created empty — the user fills it in via

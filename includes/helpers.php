@@ -77,6 +77,8 @@ function csrf_required(): void
 
 function require_login(): void
 {
+    static $activityLogged = false;
+
     auth_start();
     if (empty($_SESSION['auth_user_id'])) {
         $current = basename($_SERVER['PHP_SELF'] ?? '');
@@ -84,7 +86,121 @@ function require_login(): void
             header('Location: login.php');
             exit;
         }
+    } else {
+        if (function_exists('get_db')) {
+            $stmt = get_db()->prepare('SELECT must_change_password FROM auth_users WHERE id = ?');
+            $stmt->execute([(int)$_SESSION['auth_user_id']]);
+            $mustChangePassword = $stmt->fetchColumn();
+            if ($mustChangePassword === false) {
+                $_SESSION = [];
+                session_destroy();
+                header('Location: login.php');
+                exit;
+            }
+            $_SESSION['auth_user']['must_change_password'] = (bool)$mustChangePassword;
+        }
+
+        if (!empty($_SESSION['auth_user']['must_change_password'])) {
+            $current = basename($_SERVER['PHP_SELF'] ?? '');
+            if (!in_array($current, ['change_password.php', 'logout.php'], true)) {
+                header('Location: change_password.php');
+                exit;
+            }
+        }
+
+        if (!$activityLogged) {
+            $user = current_user();
+            if ($user && ($user['role'] ?? '') === 'Teacher' && function_exists('get_db')) {
+                $page = basename($_SERVER['PHP_SELF'] ?? '');
+                $labels = [
+                    'index.php' => 'Home',
+                    'generator.php' => 'AI Generator',
+                    'syllabus.php' => 'Resource Library',
+                    'users.php' => 'User Directory',
+                    'reports.php' => 'Reports',
+                    'settings.php' => 'Settings',
+                    'help.php' => 'Help',
+                    'change_password.php' => 'Password settings',
+                    'generate.php' => 'AI Generator',
+                    'save_generated.php' => 'Saved generations',
+                    'save_forecast.php' => 'Forecast tracker',
+                ];
+                $label = $labels[$page] ?? 'EduPlan';
+                $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+                $eventType = $method === 'GET' ? 'page_view' : 'activity';
+
+                if ($method === 'GET') {
+                    $activity = 'Viewed ' . $label;
+                } elseif ($page === 'generate.php') {
+                    $activity = 'Used AI Generator';
+                } elseif ($page === 'save_generated.php') {
+                    $activity = 'Saved generated content';
+                } elseif ($page === 'save_forecast.php') {
+                    $activity = 'Saved forecast progress';
+                } else {
+                    $activity = 'Submitted on ' . $label;
+                }
+
+                $isForecastStatusUpdate = $page === 'reports.php'
+                    && ($_POST['action'] ?? '') === 'update_forecast_status';
+                if (!in_array($page, ['generate.php', 'save_forecast.php'], true) && !$isForecastStatusUpdate) {
+                    record_teacher_activity(get_db(), $user, $eventType, $activity);
+                }
+            }
+            $activityLogged = true;
+        }
     }
+}
+
+function record_teacher_activity(
+    PDO $pdo,
+    array $user,
+    string $eventType,
+    string $activity,
+    ?string $className = null,
+    ?string $subject = null,
+    ?string $topic = null,
+    ?string $term = null,
+    ?string $academicYear = null
+): void
+{
+    if (($user['role'] ?? '') !== 'Teacher') {
+        return;
+    }
+
+    $stmt = $pdo->prepare('INSERT INTO teacher_activities
+        (auth_user_id, directory_user_id, teacher_name, teacher_email, event_type, activity, class_name, subject, topic, term, academic_year)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt->execute([
+        (int)$user['id'],
+        isset($user['directory_user_id']) ? (int)$user['directory_user_id'] : null,
+        (string)$user['name'],
+        (string)$user['email'],
+        $eventType,
+        $activity,
+        activity_text($className, 190),
+        activity_text($subject, 190),
+        activity_text($topic, 255),
+        activity_text($term, 190),
+        activity_text($academicYear, 50),
+    ]);
+}
+
+function activity_text(?string $value, int $maxLength): ?string
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return null;
+    }
+
+    if (function_exists('mb_substr')) {
+        return mb_substr($value, 0, $maxLength, 'UTF-8');
+    }
+    if (preg_match('/^.{0,' . $maxLength . '}/us', $value, $matches)) {
+        return $matches[0];
+    }
+
+    return substr($value, 0, $maxLength);
 }
 
 function current_user(): ?array
@@ -95,8 +211,29 @@ function current_user(): ?array
 
 function require_admin(): void
 {
+    require_login();
     $user = current_user();
     if (!$user || ($user['role'] ?? '') !== 'Admin') {
+        http_response_code(403);
+        echo 'Forbidden.';
+        exit;
+    }
+}
+
+function require_permission(string $permission): void
+{
+    require_login();
+    $user = current_user();
+    $teacherPermissions = [
+        'generate',
+        'manage_resources',
+        'manage_saved',
+        'manage_users',
+        'edit_profile',
+    ];
+
+    if (!$user || (($user['role'] ?? '') !== 'Admin'
+        && !(($user['role'] ?? '') === 'Teacher' && in_array($permission, $teacherPermissions, true)))) {
         http_response_code(403);
         echo 'Forbidden.';
         exit;

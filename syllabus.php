@@ -7,7 +7,7 @@ $pdo = get_db();
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
-    require_admin();
+    require_permission('manage_resources');
     if (!csrf_validate()) {
         $errors[] = 'Could not upload: invalid session.';
     }
@@ -100,22 +100,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-    require_admin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['edit', 'delete'], true)) {
+    require_permission('manage_resources');
+    $action = $_POST['action'];
     if (!csrf_validate()) {
-        flash_set('Could not remove resource: invalid session.');
+        flash_set('Could not update resource: invalid session.');
         header('Location: syllabus.php');
         exit;
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
-        require_admin();
-        if (!csrf_validate()) {
-            flash_set('Could not update resource: invalid session.');
-            header('Location: syllabus.php');
-            exit;
-        }
-        $id = (int)($_POST['id'] ?? 0);
+    $id = (int)($_POST['id'] ?? 0);
+    if ($action === 'edit') {
         $title = trim($_POST['title'] ?? '');
         $type = ($_POST['type'] ?? 'syllabus') === 'book' ? 'book' : 'syllabus';
         $subject = trim($_POST['subject'] ?? '');
@@ -137,18 +132,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         } else {
             flash_set('Could not update resource.');
         }
-        header('Location: syllabus.php');
-        exit;
+    } else {
+        $row = $pdo->prepare('SELECT file_path FROM resources WHERE id = ?');
+        $row->execute([$id]);
+        $r = $row->fetch();
+        if ($r && $r['file_path'] && file_exists(__DIR__ . '/' . $r['file_path'])) {
+            @unlink(__DIR__ . '/' . $r['file_path']);
+        }
+        $pdo->prepare('DELETE FROM resources WHERE id = ?')->execute([$id]);
+        flash_set('Resource removed.');
     }
-    $id = (int)($_POST['id'] ?? 0);
-    $row = $pdo->prepare('SELECT file_path FROM resources WHERE id = ?');
-    $row->execute([$id]);
-    $r = $row->fetch();
-    if ($r && $r['file_path'] && file_exists(__DIR__ . '/' . $r['file_path'])) {
-        @unlink(__DIR__ . '/' . $r['file_path']);
-    }
-    $pdo->prepare('DELETE FROM resources WHERE id = ?')->execute([$id]);
-    flash_set('Resource removed.');
     header('Location: syllabus.php');
     exit;
 }

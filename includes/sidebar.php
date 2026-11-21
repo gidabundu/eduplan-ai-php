@@ -21,6 +21,9 @@ $toolItems = [
 ];
 $siteLanguage = get_user_language();
 $authUser = current_user();
+if (($authUser['role'] ?? '') === 'Admin') {
+    array_unshift($toolItems, ['id' => 'teacher-activity', 'label' => 'Teacher Activity', 'href' => 'teacher_activity.php', 'icon' => 'activity']);
+}
 $authName = trim($authUser['name'] ?? '') !== '' ? $authUser['name'] : 'Account';
 ?>
 <aside id="sidebar" class="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col self-start overflow-y-auto border-r border-zinc-900 bg-black">
